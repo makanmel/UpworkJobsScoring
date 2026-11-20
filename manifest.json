@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Upwork Job Scorer",
+  "version": "0.1.0",
+  "description": "Scores Upwork job cards in the search feed and highlights high-conversion postings.",
+  "permissions": ["storage", "alarms", "tabs"],
+  "host_permissions": [
+    "https://www.upwork.com/*",
+    "https://ntfy.sh/*",
+    "https://api.telegram.org/*"
+  ],
+  "action": {
+    "default_title": "Upwork Job Scorer — high-score jobs"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://www.upwork.com/*"],
+      "js": ["scorer.js", "parser.js", "content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

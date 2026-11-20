@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Upwork Job Scorer — Settings</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      max-width: 720px;
+      margin: 24px auto;
+      padding: 0 16px 48px;
+      color: #1e293b;
+      background: #f8fafc;
+    }
+    h1 { font-size: 20px; }
+    h2 { font-size: 14px; margin: 28px 0 8px; text-transform: uppercase; letter-spacing: .04em; color: #64748b; }
+    fieldset { border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; background: #fff; }
+    label { display: block; font-size: 13px; margin: 10px 0 4px; }
+    label.inline { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+    input[type="number"], input[type="text"], input[type="url"], textarea {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    input[type="number"] { width: 90px; }
+    textarea { min-height: 110px; resize: vertical; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .row > div { flex: 1; min-width: 160px; }
+    .hint { font-size: 12px; color: #64748b; margin-top: 4px; }
+    button {
+      margin-top: 20px;
+      padding: 9px 18px;
+      border: 0;
+      border-radius: 8px;
+      background: #14a800;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.secondary { background: #e2e8f0; color: #1e293b; margin-left: 8px; }
+    #status { margin-left: 12px; font-size: 13px; color: #14a800; }
+  </style>
+</head>
+<body>
+  <h1>Upwork Job Scorer — Settings</h1>
+
+  <h2>Signal weights</h2>
+  <fieldset>
+    <div class="row">
+      <div><label>Fixed-price bonus</label><input id="w_fixed" type="number" step="0.5"></div>
+      <div><label>Hourly penalty</label><input id="w_hourly" type="number" step="0.5"></div>
+      <div><label>Short scope bonus</label><input id="w_shortScope" type="number" step="0.5"></div>
+      <div><label>Long scope penalty</label><input id="w_longScope" type="number" step="0.5"></div>
+    </div>
+    <div class="row">
+      <div><label>Payment verified bonus</label><input id="w_verified" type="number" step="0.5"></div>
+      <div><label>Unverified penalty</label><input id="w_unverified" type="number" step="0.5"></div>
+      <div><label>Client $10k+ bonus</label><input id="w_spentGreat" type="number" step="0.5"></div>
+      <div><label>Client $1k+ bonus</label><input id="w_spentGood" type="number" step="0.5"></div>
+    </div>
+    <div class="row">
+      <div><label>No spend penalty</label><input id="w_noSpend" type="number" step="0.5"></div>
+      <div><label>Fresh proposals bonus</label><input id="w_fresh" type="number" step="0.5"></div>
+      <div><label>Crowded penalty</label><input id="w_crowded" type="number" step="0.5"></div>
+      <div><label>Seen-before penalty</label><input id="w_seenBefore" type="number" step="0.5"></div>
+    </div>
+    <div class="row">
+      <div><label>Stop-word flag penalty</label><input id="w_stopWord" type="number" step="0.5"></div>
+      <div><label>Vague scope penalty</label><input id="w_vague" type="number" step="0.5"></div>
+      <div><label>Non-dev role penalty</label><input id="w_roleMismatch" type="number" step="0.5"></div>
+      <div><label>Good desc length bonus (65+ words)</label><input id="w_descGood" type="number" step="0.5"></div>
+      <div><label>Long desc penalty (400+ words)</label><input id="w_descLong" type="number" step="0.5"></div>
+      <div><label>Location mismatch penalty</label><input id="w_locationMismatch" type="number" step="0.5"></div>
+      <div><label>Native language mismatch penalty</label><input id="w_langMismatch" type="number" step="0.5"></div>
+    </div>
+    <div class="row">
+      <div><label>Baseline score</label><input id="w_baseline" type="number" step="0.5"></div>
+      <div><label>High-score threshold (webhook)</label><input id="w_alertMin" type="number" step="0.5"></div>
+    </div>
+  </fieldset>
+
+  <h2>Thresholds</h2>
+  <fieldset>
+    <div class="row">
+      <div><label>Fresh if proposals ≤</label><input id="t_lowProposals" type="number"></div>
+      <div><label>Crowded if proposals ≥</label><input id="t_highProposals" type="number"></div>
+      <div><label>Good spend ≥ $</label><input id="t_spentGood" type="number"></div>
+      <div><label>Great spend ≥ $</label><input id="t_spentGreat" type="number"></div>
+    </div>
+  </fieldset>
+
+  <h2>Geography &amp; language</h2>
+  <fieldset>
+    <div class="row">
+      <div>
+        <label>Preferred client country (empty = disable)</label>
+        <input id="preferredCountry" type="text" value="ukraine">
+      </div>
+      <div>
+        <label>Preferred native language (empty = disable)</label>
+        <input id="preferredLanguage" type="text" value="ukrainian">
+      </div>
+    </div>
+    <div class="hint">Jobs whose client country differs, or requiring a different native language, get the mismatch penalty.</div>
+  </fieldset>
+
+  <h2>Word lists</h2>
+  <fieldset>
+    <label>Stop-words (one per line)</label>
+    <textarea id="stopWords"></textarea>
+    <div class="hint">Matched case-insensitively against title + description. First hit applies the flag penalty.</div>
+    <label>Vague-scope phrases (one per line)</label>
+    <textarea id="vagueWords"></textarea>
+    <label>Non-dev role markers (one per line — e.g. design/art/writing jobs)</label>
+    <textarea id="roleMismatchWords"></textarea>
+    <div class="hint">Jobs matching one of these get the non-dev-role penalty — useful when the feed mixes designer/copywriter postings.</div>
+  </fieldset>
+
+  <h2>Auto-refresh &amp; alerts</h2>
+  <fieldset>
+    <label class="inline">Hide jobs scoring below
+      <input id="hideBelowScore" type="number" min="0" max="10" step="0.5" value="0" style="width:70px">
+      (0 = don't hide anything)
+    </label>
+    <label class="inline"><input id="autoRefresh" type="checkbox"> Auto-refresh open Upwork search tabs</label>
+    <label>Refresh interval (minutes)</label>
+    <input id="refreshMinutes" type="number" min="1" value="15">
+    <label>Webhook URL (Telegram bot API or ntfy.sh — receives JSON POST)</label>
+    <input id="webhookUrl" type="url" placeholder="https://ntfy.sh/my-topic or https://api.telegram.org/bot.../sendMessage">
+    <div class="hint">Fired once per new job with score ≥ high-score threshold. For Telegram include <code>chat_id</code> in the URL query or body template below.</div>
+    <label>Webhook body template (<code>{{title}}</code>, <code>{{score}}</code>, <code>{{url}}</code>, <code>{{reasons}}</code>)</label>
+    <textarea id="webhookTemplate" rows="3"></textarea>
+  </fieldset>
+
+  <button id="save">Save</button>
+  <button id="reset" class="secondary">Reset to defaults</button>
+  <span id="status"></span>
+
+  <script src="scorer.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

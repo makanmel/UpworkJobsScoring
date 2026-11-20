@@ -1,0 +1,59 @@
+/* Upwork Job Scorer badge styles */
+
+.uws-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 6px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.uws-badge .uws-score {
+  font-weight: 700;
+}
+
+.uws-badge .uws-chip {
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.35);
+  font-weight: 500;
+}
+
+.uws-badge.uws-good {
+  background: #dcf5e3;
+  color: #0f6b2f;
+  border: 1px solid #9eddb4;
+}
+
+.uws-badge.uws-mid {
+  background: #fff4d6;
+  color: #8a6100;
+  border: 1px solid #ecd27a;
+}
+
+.uws-badge.uws-bad {
+  background: #fde3e3;
+  color: #a02222;
+  border: 1px solid #f0b3b3;
+}
+
+/* Dim low-scoring cards */
+.uws-dim {
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.uws-dim:hover {
+  opacity: 1;
+}
+
+/* Completely hide no-go cards (Score 0/10) when enabled */
+.uws-hidden {
+  display: none !important;
+}
