@@ -82,8 +82,15 @@
   }
 
   function removeBadge(card) {
-    const b = card.querySelector("." + BADGE_CLASS);
-    if (b) b.remove();
+    card.querySelectorAll("." + BADGE_CLASS).forEach(function (b) {
+      if (b.querySelector(".uws-score")) {
+        b.remove(); // our real badge
+      } else {
+        // Vue morphed this node into its own content but kept our classes
+        // — strip them so the card stops looking like a badge.
+        b.classList.remove(BADGE_CLASS, "uws-good", "uws-mid", "uws-bad");
+      }
+    });
     card.classList.remove("uws-dim");
   }
 
@@ -100,7 +107,7 @@
 
     result.topReasons.forEach(function (r) {
       const chip = document.createElement("span");
-      chip.className = "uws-chip";
+      chip.className = "uws-chip" + (r.charAt(0) === "-" ? " uws-neg" : " uws-pos");
       chip.textContent = r;
       badge.appendChild(chip);
     });
@@ -108,24 +115,29 @@
     const full = result.reasons.map(function (r) { return r.label; }).join("  ");
     badge.title = full || "No signals";
 
-    // Insert near the title; fall back to top of card
-    const titleEl =
-      card.querySelector('[data-test="job-tile-title"]') ||
-      card.querySelector("h2, h3, h4") ||
-      card;
-    if (titleEl.parentNode) {
-      titleEl.parentNode.insertBefore(badge, titleEl.nextSibling);
+    // Append INSIDE the existing badges row — Upwork's Vue patcher reuses
+    // stray sibling divs (it had morphed our badge into JobTileDetails).
+    // Last-child position in the badges container is the least likely to
+    // be recycled by the vdom diff.
+    const badgesRow = card.querySelector('[data-test*="JobTileBadges"]');
+    if (badgesRow) {
+      badgesRow.appendChild(badge);
     } else {
-      card.insertBefore(badge, card.firstChild);
+      const header = card.querySelector(".job-tile-header");
+      if (header && header.parentNode) {
+        header.parentNode.insertBefore(badge, header.nextSibling);
+      } else {
+        card.insertBefore(badge, card.firstChild);
+      }
     }
 
     card.classList.toggle("uws-dim", result.tier === "bad");
-    // Hide cards below the configured threshold (0 = disabled).
-    // Falls back to the legacy hideNoGo flag (hide only 0/10) for
+    // Hide cards scoring at or below the threshold (-1 = disabled, so
+    // 0 hides only 0/10). Falls back to the legacy hideNoGo flag for
     // settings saved before the threshold input existed.
-    let hideBelow = settings ? parseFloat(settings.hideBelowScore) : 0;
-    if (!isFinite(hideBelow)) hideBelow = settings && settings.hideNoGo ? 1 : 0;
-    card.classList.toggle("uws-hidden", hideBelow > 0 && result.score < hideBelow);
+    let hideBelow = settings ? parseFloat(settings.hideBelowScore) : -1;
+    if (!isFinite(hideBelow)) hideBelow = settings && settings.hideNoGo ? 0 : -1;
+    card.classList.toggle("uws-hidden", hideBelow >= 0 && result.score <= hideBelow);
   }
 
   function loadConfig() {
@@ -264,13 +276,28 @@
 
       // Safety net: every 2s re-scan the feed — picks up unprocessed cards
       // (e.g. hydrated after first pass) and re-renders badges destroyed by
-      // an internal framework re-render we didn't observe.
+      // an internal framework re-render we didn't observe. Also refreshes
+      // settings so hideBelowScore changes apply even if the onChanged
+      // listener was missed or the context is degraded.
+      let lastHideBelow = null;
       function sweep() {
+        loadSettings().then(function () {
+          const hb = parseFloat(settings.hideBelowScore) || 0;
+          if (lastHideBelow !== null && hb !== lastHideBelow) {
+            // Threshold changed — re-render every card to apply hidden state
+            document.querySelectorAll("[" + PROCESSED_ATTR + "]").forEach(function (c) {
+              c.removeAttribute(PROCESSED_ATTR);
+              schedule(c);
+            });
+          }
+          lastHideBelow = hb;
+        });
         scan(document);
         document.querySelectorAll("[" + PROCESSED_ATTR + "]").forEach(function (card) {
           if (!card.isConnected) return;
           if (card.getAttribute(PROCESSED_ATTR) !== "1") return;
-          if (!card.querySelector("." + BADGE_CLASS)) {
+          // .uws-badge without .uws-score = Vue-morphed node, not a badge
+          if (!card.querySelector("." + BADGE_CLASS + " .uws-score")) {
             card.removeAttribute(PROCESSED_ATTR);
             schedule(card);
           }

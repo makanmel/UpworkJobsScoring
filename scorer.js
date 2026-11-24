@@ -89,7 +89,11 @@
     // Preferred client geography/language — mismatches are red flags.
     // Lowercase; empty string disables the check.
     preferredCountry: "ukraine",
-    preferredLanguage: "ukrainian"
+    preferredLanguage: "ukrainian",
+    // Minimum fixed-price budget — jobs below this score 0 (0 = off).
+    minBudget: 0,
+    // Minimum hourly rate (upper bound of the range) — below = 0 (0 = off).
+    minHourlyRate: 0
   };
 
   // Possessive pronouns that indicate the word refers to an existing team
@@ -128,6 +132,7 @@
     const config = Object.assign({}, DEFAULT_CONFIG, cfg || {});
     const W = Object.assign({}, DEFAULT_CONFIG.weights, config.weights || {});
     let score = W.baseline;
+    let noGo = false;
     const reasons = [];
     const text = ((job.title || "") + " " + (job.description || "")).toLowerCase();
 
@@ -139,6 +144,20 @@
     // --- Positive signals ---
     if (job.paymentType === "fixed") add(W.fixed, "+Fixed");
     if (job.paymentType === "hourly") add(W.hourly, "-Hourly");
+
+    // Minimum fixed-price budget — under threshold is a hard no-go.
+    if (config.minBudget > 0 && job.paymentType === "fixed" &&
+        job.budget != null && job.budget < config.minBudget) {
+      add(0, "-Budget <$" + config.minBudget);
+      noGo = true;
+    }
+
+    // Minimum hourly rate (compared against the range's upper bound).
+    if (config.minHourlyRate > 0 && job.paymentType === "hourly" &&
+        job.budget != null && job.budget < config.minHourlyRate) {
+      add(0, "-Rate <$" + config.minHourlyRate + "/hr");
+      noGo = true;
+    }
 
     if (job.duration) {
       const d = job.duration.toLowerCase();
@@ -195,7 +214,6 @@
 
     // Required worker location: if the job lists allowed locations and the
     // preferred country is NOT among them = hard no-go (score forced to 0).
-    let noGo = false;
     if (job.reqLocations && config.preferredCountry) {
       const pref = config.preferredCountry.toLowerCase();
       if (job.reqLocations.indexOf(pref) < 0) {
@@ -214,12 +232,13 @@
     if (noGo) score = 0;
     const tier = score >= W.alertMin ? "good" : score >= 4 ? "mid" : "bad";
 
-    // Top reasons: biggest |delta| first, keep 2
-    const top = reasons
-      .slice()
-      .sort(function (a, b) { return Math.abs(b.delta) - Math.abs(a.delta); })
-      .slice(0, 2)
-      .map(function (r) { return r.label; });
+    // Badge chips: ALL reasons — positives first, then negatives,
+    // each group ordered by |delta|.
+    const byMag = reasons.slice()
+      .sort(function (a, b) { return Math.abs(b.delta) - Math.abs(a.delta); });
+    const pos = byMag.filter(function (r) { return r.delta > 0; });
+    const neg = byMag.filter(function (r) { return r.delta < 0; });
+    const top = pos.concat(neg).map(function (r) { return r.label; });
 
     return { score: score, tier: tier, reasons: reasons, topReasons: top };
   }

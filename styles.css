@@ -11,6 +11,7 @@
   font-weight: 600;
   line-height: 1.4;
   font-family: inherit;
+  flex-wrap: wrap;
   white-space: nowrap;
 }
 
@@ -21,8 +22,19 @@
 .uws-badge .uws-chip {
   padding: 1px 6px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.35);
   font-weight: 500;
+}
+
+/* Positive signal — green tint */
+.uws-badge .uws-chip.uws-pos {
+  background: rgba(15, 107, 47, 0.12);
+  color: #0f6b2f;
+}
+
+/* Negative signal — red tint */
+.uws-badge .uws-chip.uws-neg {
+  background: rgba(160, 34, 34, 0.10);
+  color: #a02222;
 }
 
 .uws-badge.uws-good {

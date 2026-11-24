@@ -7,7 +7,7 @@
 
   const DEFAULT_SETTINGS = {
     autoRefresh: false,
-    hideBelowScore: 0,
+    hideBelowScore: -1,
     refreshMinutes: 15,
     webhookUrl: "",
     webhookTemplate: '{"text": "[{{score}}/10] {{title}}\\n{{reasons}}\\n{{url}}"}'
@@ -33,6 +33,8 @@
       el("t_highProposals").value = cfg.highProposalCount;
       el("t_spentGood").value = cfg.clientSpentGood;
       el("t_spentGreat").value = cfg.clientSpentGreat;
+      el("t_minBudget").value = cfg.minBudget || 0;
+      el("t_minHourly").value = cfg.minHourlyRate || 0;
       el("stopWords").value = cfg.stopWords.join("\n");
       el("vagueWords").value = cfg.vagueWords.join("\n");
       el("roleMismatchWords").value = (cfg.roleMismatchWords || []).join("\n");
@@ -40,7 +42,7 @@
       el("preferredLanguage").value = cfg.preferredLanguage || "";
 
       el("autoRefresh").checked = !!st.autoRefresh;
-      el("hideBelowScore").value = typeof st.hideBelowScore === "number" ? st.hideBelowScore : (st.hideNoGo ? 1 : 0);
+      el("hideBelowScore").value = typeof st.hideBelowScore === "number" ? st.hideBelowScore : (st.hideNoGo ? 0 : -1);
       el("refreshMinutes").value = st.refreshMinutes;
       el("webhookUrl").value = st.webhookUrl;
       el("webhookTemplate").value = st.webhookTemplate;
@@ -59,6 +61,8 @@
     cfg.highProposalCount = parseInt(el("t_highProposals").value, 10) || 999;
     cfg.clientSpentGood = parseInt(el("t_spentGood").value, 10) || 0;
     cfg.clientSpentGreat = parseInt(el("t_spentGreat").value, 10) || 0;
+    cfg.minBudget = Math.max(0, parseInt(el("t_minBudget").value, 10) || 0);
+    cfg.minHourlyRate = Math.max(0, parseInt(el("t_minHourly").value, 10) || 0);
     cfg.stopWords = lines("stopWords");
     cfg.vagueWords = lines("vagueWords");
     cfg.roleMismatchWords = lines("roleMismatchWords");
@@ -67,7 +71,7 @@
 
     const st = {
       autoRefresh: el("autoRefresh").checked,
-      hideBelowScore: Math.max(0, Math.min(10, parseFloat(el("hideBelowScore").value) || 0)),
+      hideBelowScore: Math.max(-1, Math.min(10, parseInt(el("hideBelowScore").value, 10))),
       refreshMinutes: Math.max(1, parseInt(el("refreshMinutes").value, 10) || 15),
       webhookUrl: el("webhookUrl").value.trim(),
       webhookTemplate: el("webhookTemplate").value.trim() || DEFAULT_SETTINGS.webhookTemplate

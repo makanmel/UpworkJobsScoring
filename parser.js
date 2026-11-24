@@ -81,15 +81,20 @@
     // Whole-card text for pattern fallbacks
     const all = text(card);
 
-    // Payment type + budget ("Fixed-price" / "Hourly: $25-$50")
+    // Payment type + budget ("Fixed price ... Est. budget: $2,000" / "Hourly: $25-$50")
     if (/fixed[- ]price/i.test(all)) {
       job.paymentType = "fixed";
-      const info = findByDataTest(card, "job-type-label") || card;
-      const m = text(info).match(/fixed[- ]price[^$]*\$([\d,]+(?:\.\d+)?k?)/i);
+      const m =
+        all.match(/est\.?\s*budget:?\s*\$([\d,]+(?:\.\d+)?k?)/i) ||
+        all.match(/fixed[- ]price[^$]*\$([\d,]+(?:\.\d+)?k?)/i);
       job.budget = m ? parseMoney(m[1]) : null;
     } else if (/hourly/i.test(all)) {
       job.paymentType = "hourly";
-      const m = all.match(/hourly[:\s]*\$([\d,]+(?:\.\d+)?)/i);
+      // "Hourly: $3.00 - $10.00" — use the upper bound as the rate the
+      // client could pay; fall back to a single "Hourly: $25" value.
+      const m =
+        all.match(/hourly[:\s]*\$[\d,]+(?:\.\d+)?\s*-\s*\$?([\d,]+(?:\.\d+)?)/i) ||
+        all.match(/hourly[:\s]*\$([\d,]+(?:\.\d+)?)/i);
       job.budget = m ? parseMoney(m[1]) : null;
     }
 
