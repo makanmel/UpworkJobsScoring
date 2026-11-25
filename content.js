@@ -237,9 +237,105 @@
     window.UpworkJobParser.findCards(root).forEach(schedule);
   }
 
+  function realClick(el) {
+    ["mousedown", "mouseup", "click"].forEach(function (type) {
+      el.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+    });
+  }
+
+  // Open a rendered Upwork dropdown and click the menu item matching
+  // matchText (exact string, or predicate function). best-effort — closes
+  // the menu via a body click when no item matched.
+  function selectDropdownOption(dd, matchText, onDone) {
+    const toggle =
+      dd.querySelector('[data-test*="dropdown-toggle"]') ||
+      dd.querySelector(".air3-dropdown-toggle");
+    if (!toggle) { if (onDone) onDone(false); return; }
+    realClick(toggle);
+    setTimeout(function () {
+      // The menu may teleport to <body> in a popper — scan every element
+      // under any visible dropdown menu and click the DEEPEST match.
+      let best = null;
+      document.querySelectorAll(
+        ".air3-dropdown-menu, .air3-dropdown-menu-list, " +
+        '[data-test*="dropdown-menu"], .air3-popper, [role="listbox"]'
+      ).forEach(function (menu) {
+        menu.querySelectorAll("li, a, button, [role='option'], span, div").forEach(function (el) {
+          const t = el.textContent.trim();
+          const hit = typeof matchText === "function"
+            ? matchText(t)
+            : t === matchText;
+          if (hit && (!best || best.contains(el))) best = el;
+        });
+      });
+      if (best) { realClick(best); if (onDone) onDone(true); return; }
+      // Menu item not found — close the dropdown we opened.
+      document.body.click();
+      if (onDone) onDone(false);
+    }, 400);
+  }
+
+  // Select "50" in the "Jobs per page" dropdown so a filtered page still
+  // yields a decent number of visible cards. One-shot per page load — if the
+  // user later picks another size we don't fight them.
+  const JOBS_PER_PAGE = 50;
+  const PER_PAGE_MAX_TRIES = 5;
+  let perPageDone = false;
+  let perPageAttempts = 0;
+
+  function ensureJobsPerPage() {
+    if (perPageDone || perPageAttempts >= PER_PAGE_MAX_TRIES) return;
+    const dd = document.querySelector('[data-test*="jobs_per_page"]');
+    if (!dd) return;
+    const label = dd.querySelector(".air3-dropdown-toggle-label");
+    if (label && label.textContent.trim() === String(JOBS_PER_PAGE)) {
+      perPageDone = true;
+      return;
+    }
+    perPageAttempts++;
+    selectDropdownOption(dd, String(JOBS_PER_PAGE), function (ok) {
+      if (ok) perPageDone = true;
+    });
+  }
+
+  // Select "Most Recent" in the "Sort by" dropdown — best-match sort hides
+  // fresh jobs. One-shot, same reasoning as the page-size helper.
+  let sortTried = false;
+
+  function ensureSortRecent() {
+    if (sortTried) return;
+    const dd = document.querySelector('[data-test="JobsSort"]');
+    if (!dd) return;
+    const label = dd.querySelector(".air3-dropdown-toggle-label");
+    sortTried = true;
+    if (label && /most recent/i.test(label.textContent)) return;
+    selectDropdownOption(dd, function (t) { return /most recent/i.test(t); }, null);
+  }
+
+  // Move the "Jobs per page / pagination" card-section ABOVE the job list —
+  // when a page's cards are all hidden, the native pagination at the bottom
+  // is hard to reach. Vue may re-render it back below; sweep re-applies.
+  function movePaginationTop() {
+    const pag = document.querySelector(
+      '[data-test="JobsPagination"], [data-test="UpCPagination"]');
+    if (!pag) return;
+    // Relocate the whole card-section wrapper (keeps "Jobs per page" too).
+    const block = pag.closest('[data-test="UpCCard"]') || pag;
+    const firstCard = document.querySelector(window.UpworkJobParser.CARD_SELECTOR);
+    if (!firstCard || !firstCard.parentNode) return;
+    // Already before the first card? Nothing to do.
+    if (block.compareDocumentPosition(firstCard) & Node.DOCUMENT_POSITION_FOLLOWING) {
+      if (block.parentNode === firstCard.parentNode) return;
+    }
+    firstCard.parentNode.insertBefore(block, firstCard);
+  }
+
   function init() {
     Promise.all([loadSeen(), loadConfig(), loadSettings()]).then(function () {
       scan(document);
+      movePaginationTop();
+      setTimeout(ensureJobsPerPage, 1000);
+      setTimeout(ensureSortRecent, 1600);
 
       const observer = new MutationObserver(function (mutations) {
         for (const m of mutations) {
@@ -293,6 +389,8 @@
           lastHideBelow = hb;
         });
         scan(document);
+        movePaginationTop();
+        ensureJobsPerPage(); // retries until success or max attempts
         document.querySelectorAll("[" + PROCESSED_ATTR + "]").forEach(function (card) {
           if (!card.isConnected) return;
           if (card.getAttribute(PROCESSED_ATTR) !== "1") return;
