@@ -312,22 +312,33 @@
     selectDropdownOption(dd, function (t) { return /most recent/i.test(t); }, null);
   }
 
-  // Move the "Jobs per page / pagination" card-section ABOVE the job list —
-  // when a page's cards are all hidden, the native pagination at the bottom
-  // is hard to reach. Vue may re-render it back below; sweep re-applies.
+  // Insert a CLONE of the pagination block above the job list — the original
+  // stays at the bottom for users who scroll to the end. Cloned prev/next
+  // buttons are real <a href> links so navigation still works; the
+  // "Jobs per page" dropdown is omitted (it needs Vue state to function).
   function movePaginationTop() {
     const pag = document.querySelector(
       '[data-test="JobsPagination"], [data-test="UpCPagination"]');
     if (!pag) return;
-    // Relocate the whole card-section wrapper (keeps "Jobs per page" too).
-    const block = pag.closest('[data-test="UpCCard"]') || pag;
     const firstCard = document.querySelector(window.UpworkJobParser.CARD_SELECTOR);
     if (!firstCard || !firstCard.parentNode) return;
-    // Already before the first card? Nothing to do.
-    if (block.compareDocumentPosition(firstCard) & Node.DOCUMENT_POSITION_FOLLOWING) {
-      if (block.parentNode === firstCard.parentNode) return;
-    }
-    firstCard.parentNode.insertBefore(block, firstCard);
+
+    // Fresh clone only when the original's nav changed (page switch) or our
+    // copy isn't sitting right above the first card any more.
+    const existing = firstCard.parentNode.querySelector(":scope > .uws-pagination-top");
+    const nav = pag.querySelector("nav") || pag;
+    if (existing && existing.getAttribute("data-uws-nav") === nav.innerHTML) return;
+
+    const clone = nav.cloneNode(true);
+    const wrap = document.createElement("div");
+    // Same wrapper classes as the bottom bar — inherits its exact padding.
+    // justify-content-between + an empty leading spacer pushes the nav right.
+    wrap.className = "uws-pagination-top air3-card-section d-lg-flex justify-content-between";
+    wrap.setAttribute("data-uws-nav", nav.innerHTML);
+    wrap.appendChild(document.createElement("span"));
+    wrap.appendChild(clone);
+    if (existing) existing.remove();
+    firstCard.parentNode.insertBefore(wrap, firstCard);
   }
 
   function init() {

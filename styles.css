@@ -69,3 +69,10 @@
 .uws-hidden {
   display: none !important;
 }
+
+/* Cloned pagination pinned above the job list — uses Upwork's
+   air3-card-section/d-lg-flex/justify-content-between classes for padding */
+.uws-pagination-top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
